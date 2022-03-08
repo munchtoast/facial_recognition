@@ -1,131 +1,12 @@
 #from this import d # :)
 from typing_extensions import Self
+import hashtable
+import ll
 import cv2
 import sys
 import numpy
 import scipy
 import pandas
-
-class ll:
-    def __init__(self, next: Self = None, prev: Self = None, im: cv2 = None, faces: cv2 = None) -> None:
-        self.__next = next
-        self.__prev = prev
-        self.__im = im
-        self.__faces = faces
-
-    def setNext(self, next) -> None:
-        self.__next = next
-
-    def setPrev(self, prev) -> None:
-        self.__prev = prev
-    
-    def setIm(self, im) -> None:
-        self.__im = im
-
-    def setFaces(self, faces) -> None:
-        self.__faces = faces
-    
-    def getFaces(self) -> cv2:
-        return self.__faces
-    
-    def getIm(self) -> cv2:
-        return self.__im
-    
-    def getPrev(self) -> Self:
-        return self.__prev
-    
-    def getNext(self) -> Self:
-        return self.__next
-    
-    def __str__(self) -> str:
-    #     if self.__next == None:
-    #         return "Prev: {0}".format(self.__prev)
-    #     elif self.__prev == None:
-    #         return ""
-    #     else:
-    #         return "Next: {0}, prev: {1}".format(self.__next, self.__prev)
-        pass
-
-#Cite https://www.geeksforgeeks.org/hash-map-in-python/ for resource
-class hashtable:
-    def __init__(self, size: int = 0) -> None:
-        self.__size = size
-        self.__hashtable = self.createBuckets()
-    
-    #Created this myself
-    def resize(self) -> Self:
-        __newHashObject = hashtable(self.getSize()**2)
-        __newHashTable = __newHashObject.getHashTable()
-        __oldHashTable = self.getHashTable()
-
-        for _oldbucket, _newbucket in zip(__oldHashTable, __newHashTable):
-            for index, record, in enumerate(_oldbucket):
-                record_key, record_val = record
-                _newbucket.append((record_key, record_val))
-        
-        return __newHashObject
-    
-    def getSize(self) -> int:
-        return self.__size
-    
-    def getHashTable(self) -> Self:
-        return self.__hashtable
-
-    def createBuckets(self) -> list:
-        return [[] for _i in range(self.getSize())]
-    
-    def setVal(self, key, val) -> None:
-        hashed_key = hash(key) % self.getSize()
-
-        bucket = self.getHashTable()[hashed_key]
-
-        f_key = False
-        for index, record in enumerate(bucket):
-            record_key, record_val = record
-            if record_key == key:
-                f_key = True
-                break
-        
-        if f_key:
-            bucket[index] = (key, val)
-        else:
-            bucket.append((key,val))
-    
-    def getVal(self, key) -> ll or None:
-        hashed_key = hash(key) % self.getSize()
-
-        bucket = self.getHashTable()[hashed_key]
-
-        f_key = False
-        for index, record in enumerate(bucket):
-            record_key, record_val = record
-            if record_key == key:
-                f_key = True
-                break
-        
-        if f_key:
-            return record_val
-        else:
-            return None
-
-    def deleteVal(self, key):
-        hashed_key = hash(key) % self.getSize()
-
-        bucket = self.getHashTable()[hashed_key]
-
-        f_key = False
-        for index, record in enumerate(bucket):
-            record_key, record_val = record
-            if record_key == key:
-                f_key = True
-                break
-        
-        if f_key:
-            bucket.pop(index) 
-        return
-
-    def __str__(self) -> str:
-        return "".join(str(item) for item in self.getHashTable())
 
 #input: cascade and color object of cv2
 #output: parameter tuple of faces
@@ -148,14 +29,19 @@ def __detection(faces, image) -> None:
         cv2.rectangle(image, (x,y), (x+w, y+h), (0, 255, 0), 2)
     
     cv2.imshow("Faces found", image)
-    cv2.waitKey(0)
+    #cv2.waitKey(0)
 
-def main() -> None:
+def main(ARGUMENT: bool, table: hashtable) -> None:
     #User supplied values, image is arg1, cascading path is arg2
-    image_path = sys.argv[1]
-    cascPath = sys.argv[2]
+    if ARGUMENT:
+        image_path = sys.argv[1]
+        cascPath = sys.argv[2]
+    else:
+        image_path = cascPath = ""
+
     #Create the haar cascade:
     #print(cascPath)
+    
     userInput = "yes"
     head = ll()
     ptr = head
@@ -195,6 +81,7 @@ def main() -> None:
 
     return
 
+#Test the hashtable class and hashing capabilities
 def hash_test() -> None:
     hash_table = hashtable(50)
     # insert some values
@@ -217,6 +104,41 @@ def hash_test() -> None:
     hash_table2 = hash_table.resize()
     print("resize:\n", hash_table2)
 
+#Test webcam and draw boxes using haarcascade_frontalface
+def webcam_test() -> None:
+    #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_frontalface_default.xml
+    face_cascade = cv2.CascadeClassifier('../haarcascade_frontalface_default.xml')
+    #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_eye.xml
+    #eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+
+    cap = cv2.VideoCapture(0)
+
+    while 1:
+        ret, image = cap.read()
+        faces = __faces(face_cascade, image)
+        __detection(faces, image)
+        k = cv2.waitKey(30) & 0xff
+        if k == 27:
+            break
+        
+    cap.release()
+    cv2.destroyAllWindows()
+
+#Initalize all hashtable data
+def init() -> hashtable:
+    hash_table = hashtable(50)
+    print(hash_table)
+    return hash_table
+
+#Only execute if this is the file being ran
 if __name__ == "__main__":
-    main()
-    #hash_test()
+    webcam_test()
+    # ARGUMENT = True
+    # try:
+    #     ARGUMENT = True if (sys.argv[1] and sys.argv[2]) else False
+    # except:
+    #     pass
+    
+    # table = init()
+    # main(ARGUMENT, table)
+    # #hash_test()
