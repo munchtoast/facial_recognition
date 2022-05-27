@@ -44,6 +44,8 @@ def __eyesDetection(eyes, image) -> None:
     for (ex,ey,ew,eh) in eyes:
         cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(255,255,0),2)
 
+#input: Argument if command args were supplied properly, and hashtable to backtrack previous images
+#output: open window of image, draw rectangles around faces, and backtrack capabilities
 def picture_mode(ARGUMENT: bool, table: hashtable) -> None:
     #User supplied values, image is arg1, cascading path is arg2
     if ARGUMENT:
@@ -53,8 +55,7 @@ def picture_mode(ARGUMENT: bool, table: hashtable) -> None:
         image_path = cascPath = ""
     
     userInput = "yes"
-    head = ll()
-    ptr = head
+    ptr = None
 
     while userInput.lower() == "yes":
         if not (cascPath):
@@ -77,10 +78,13 @@ def picture_mode(ARGUMENT: bool, table: hashtable) -> None:
         #Output detection of faces
         __faceDetection(faces, image)
         cv2.waitKey(0)
-
+       
         node = ll(None, ptr, image, faces)
-        ptr.setNext(node)
-        node.setPrev(ptr)
+
+        if ptr != None:
+            ptr.setNext(node)
+            node.setPrev(ptr)
+        
         ptr = node
 
         table.setVal(image_path, node)
@@ -145,13 +149,16 @@ def webcam_test() -> None:
     cv2.destroyAllWindows()
 
 def webcam_mode() -> None:
-    cap = VideoCapture(1)
+    cap = VideoCapture(0)
 
+    #Set the window size
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
+    #Estimation of every frame in webcam
     pose_estimation = PoseEstimator(img_size=(height, width))
 
+    #Create mark detector object
     mark_detector = MarkDetector()
 
     meter = cv2.TickMeter()
@@ -164,8 +171,10 @@ def webcam_mode() -> None:
             
         image = cv2.flip(image, 2)
 
+        #Detect face, returns an object. Else, return none if no face is there
         face = mark_detector.extract_cnn_facebox(image)
 
+        #Drawing the box if the face exists
         if face is not None:
             x1, y1, x2, y2 = face
             face_image = image[y1:y2,x1:x2]
@@ -187,8 +196,11 @@ def webcam_mode() -> None:
             pose_estimation.draw_axes(image, pose[0], pose[1])
 
             mark_detector.draw_box(image, [face])
-
+        
+        #Title of the window
         cv2.imshow("Preview", image)
+        
+        #User hits the exit key
         if cv2.waitKey(1) == 27:
             break
 
